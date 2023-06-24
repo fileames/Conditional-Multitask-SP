@@ -81,7 +81,7 @@ For all the training and experiments Nvidia A100 with 40GB memory is used.
 
 - `configs/single_task.json` file contains the configuration for the single task models. `task` parameter can get *depth* or *segmentation* for different tasks. It can be changed for different configuration settings.
 
-- To train a new multitask network using the Nyuv2 Dataset, run the following code. More information on the config file can be found in [config README](https://github.com/fileames/Conditional-Multitask-SP/tree/main/configs).
+- To train a new single-task network using the Nyuv2 Dataset, run the following code. More information on the config file can be found in [config README](https://github.com/fileames/Conditional-Multitask-SP/tree/main/configs).
 
   ```bash
     python train_nyu_single_task.py --config ./configs/single_task.json
@@ -95,7 +95,7 @@ For all the training and experiments Nvidia A100 with 40GB memory is used.
 
 ### Training Taskonomy
 
-To train the model with the taskonomy dataset, get access to data. 
+To train the model with the [Taskonomy](http://taskonomy.stanford.edu/) dataset, get access to data. 
 
 - `configs/taskonomy.json` file contains the configuration for the above *Conditioned Multitask2* model. It can be changed for different configuration settings. The batch size is selected for 4 Nvidia A100 GPUs. From experience, we observed 16*number of GPUs works in this setting.
 
@@ -112,7 +112,7 @@ To train the model with the taskonomy dataset, get access to data.
 
 ### Evaluation
 
-The trained models can be evaluated with the `evaluate.py` script, with the following command. More information on evaluation config file can be found in [config README](https://github.com/fileames/Conditional-Multitask-SP/tree/main/configs). Mean IOU and d1 metrics are printed and a variable number of images are saved to the `images` folder.
+The trained models can be evaluated with the `evaluate.py` script, with the following command. More information on the evaluation config file can be found in [config README](https://github.com/fileames/Conditional-Multitask-SP/tree/main/configs). Mean IOU and d1 metrics are printed and a variable number of images are saved to the `images` folder.
 
 ```bash
     python evaluate.py --config ./configs/evaluate.json
