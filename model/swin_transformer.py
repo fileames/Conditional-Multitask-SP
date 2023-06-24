@@ -3,6 +3,10 @@
 # Copyright (c) 2021 Microsoft
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ze Liu
+
+# Code from https://github.com/HuCaoFighting/Swin-Unet
+# Code from https://github.com/CAMTL/CA-MTL
+
 # --------------------------------------------------------
 
 import torch
