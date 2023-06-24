@@ -26,14 +26,15 @@ Training settings:
 - continue_training: start over or continue training with the same experiment name (boolean)
 - batch_size: batch size for the training (integer)
 - epochs: number of epochs (integer)
+- seg_weight: Weight of segmentation (integer)
+- depth_weight: Weight of depth (integer)
 
 Model settings:
 - conditioned_blocks: blocks to condition (more information on README) (list)
 - adapter: whether to use adapter (boolean)
 - frozen_encoder: whether to use frozen encoder (boolean)
 - use_conditional_layer_norm: whether to use conditional layer normalization (boolean)
-- seg_weight: Weight of segmentation (integer)
-- depth_weight: Weight of depth (integer)
+
 
 ## Train NYU2 Single Task
 ```json
@@ -86,13 +87,13 @@ Training settings:
 - continue_training: start over or continue training with the same experiment name (boolean)
 - batch_size: batch size for the training (integer)
 - epochs: number of epochs (integer)
+- seg_weight: Weight of segmentation (integer)
+- depth_weight: Weight of depth (integer)
 
 Model settings:
 - conditioned_blocks: blocks to condition (more information on README) (list)
 - adapter: whether to use adapter (boolean)
 - frozen_encoder: whether to use frozen encoder (boolean)
-- seg_weight: Weight of segmentation (integer)
-- depth_weight: Weight of depth (integer)
 
 
 ## Evaluate
