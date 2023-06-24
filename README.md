@@ -19,8 +19,8 @@ For all the models, [Swin Transformer](https://github.com/microsoft/Swin-Transfo
 | Baseline Multitask |True | None | Regular | False | False | 5-1                    | 0.7793 | 0.4977        |
 | Frozen Encoder |True | 0-0-6-2 | Conditioned | True | True | 5-1                     | 0.5524  | 0.2666        |
 | Conditioned Multitask |True | All | Conditioned | False | False |  5-1                    | 0.7826  | 0.4978       | 
-| Conditioned Multitask2 |True | All | Regular | False | False |  5-1                    | 0.787  | 0.500       | [drive link](https://drive.google.com/file/d/1iPU1pGttKI6djgKMkGSmUxP5u-UOv6uS/view?usp=sharing)
-| Taskonomy |True | All | Regular | False | False |  5-1                    | 0.7971  | 0.6749       | [drive link](https://drive.google.com/file/d/1YqYgxqQnf9jYGB3S8r2ARSUedwOLvQYI/view?usp=sharing)
+| Conditioned Multitask2 |True | All | Regular | False | False |  5-1                    | 0.7871  | 0.5003       | [drive link](https://drive.google.com/file/d/1iPU1pGttKI6djgKMkGSmUxP5u-UOv6uS/view?usp=sharing)
+| Taskonomy |True | All | Regular | False | False |  5-1                    | 0.8005  | 0.6717       | [drive link](https://drive.google.com/file/d/1j4uDBGB8bk5QcSR9kRs-UU7csKtHN3tN/view?usp=sharing)
 
 Note: As they are not evaluated on the same dataset, the results of Taskonomy are not directly comparable to others.
 

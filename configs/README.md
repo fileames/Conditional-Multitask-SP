@@ -38,7 +38,7 @@ Model settings:
 ## Train NYU2 Single Task
 ```json
 {
-    "experiment_name": "segmentation",
+    "experiment_name": "single_task_segmentation",
     "continue_training": false,
     
     "task": "segmentation",
@@ -65,7 +65,7 @@ Model settings:
 ## Train Taskonomy
 ```json
 {
-    "experiment_name": "taskonomy",
+    "experiment_name": "taskonomy_adaptive",
     "continue_training": false,
     
     "batch_size": 64,
