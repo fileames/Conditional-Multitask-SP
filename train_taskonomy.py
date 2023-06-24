@@ -15,6 +15,7 @@ import cv2
 import json
 import argparse
 
+# Small adjustments are made to the Swin Transformer model for parallel run, not related to architecture
 from model.swin_transformer_parallel import SwinTransformer
 from loss.losses import berHuLoss
 from loss.metrics import iou_pytorch, eval_depth

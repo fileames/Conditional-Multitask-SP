@@ -102,6 +102,7 @@ class WindowAttention(nn.Module):
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
         attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
         proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+        task_configs (dict): Configuration for the tasks
     """
 
     def __init__(self, dim, window_size, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., task_configs=None):
@@ -259,6 +260,7 @@ class SwinTransformerBlock(nn.Module):
         act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
+        task_configs (dict): Configuration for the tasks
         use_conditional_layer (bool, optional): Whether to use conditional or regular layer normalization
     """
 
@@ -498,6 +500,10 @@ class BasicLayer(nn.Module):
         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
+        task_configs (dict): Configuration for the tasks
+        conditioned_blocks (list): List of transformer blocks to condition
+        adapter (boolean): Whether to use adapters or not
+        use_conditional_layer (boolean): Whether to use regular or conditioned layer normalization
     """
 
     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
@@ -608,6 +614,7 @@ class BasicLayer_up(nn.Module):
         norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+        use_conditional_layer (boolean): Whether to use regular or conditioned layer normalization
     """
 
     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
@@ -784,6 +791,12 @@ class SwinTransformer(nn.Module):
         patch_norm (bool): If True, add normalization after patch embedding. Default: True
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
+        tasks (list): List of tasks
+        final_upsample (strin): Setting to expand the last layer
+        task_classes (list): List of number of prediction classes for each task
+        conditioned_blocks (list): List of transformer blocks to condition
+        adapter (boolean): Whether to use adapters or not
+        use_conditional_layer (boolean): Whether to use regular or conditioned layer normalization
     """
 
     def __init__(self, img_size=224, patch_size=4, in_chans=3, num_classes=1000,
@@ -845,13 +858,14 @@ class SwinTransformer(nn.Module):
 
         self.task_id_2_task_idx = {i: i for i, t in enumerate(tasks)}
 
+        # Create embedding layer for task embeddings
         self.task_type_embeddings = nn.Embedding(
             len(tasks), self.hidden_size)
 
         self.task_configs = {"hidden_size": self.hidden_size,
                              "max_seq_length": self.max_seq_length}
 
-        # build layers
+        # build encoder layers
         self.layers = nn.ModuleList()
         for i_layer in range(self.num_layers):
             
@@ -880,7 +894,7 @@ class SwinTransformer(nn.Module):
 
         self.norm = norm_layer(self.num_features)
 
-        # build decoder layers
+        # build decoder layers - one decoder head for each task
 
         self.decoder_layers_layers_up = nn.ModuleList()
         self.decoder_layers_concat_back_dim = nn.ModuleList()
@@ -925,9 +939,8 @@ class SwinTransformer(nn.Module):
             self.decoder_layers_norm_up.append(norm_layer(self.embed_dim))
 
             if self.final_upsample == "expand_first":
-                #print("---final upsample expand_first---")
                 up = FinalPatchExpand_X4(input_resolution=(
-                    img_size//patch_size, img_size//patch_size), dim_scale=4, dim=embed_dim) # dimscale 4
+                    img_size//patch_size, img_size//patch_size), dim_scale=4, dim=embed_dim)
 
                 self.decoder_layers_up.append(up)
 
@@ -957,33 +970,24 @@ class SwinTransformer(nn.Module):
     def no_weight_decay_keywords(self):
         return {'relative_position_bias_table'}
 
-    def forward_features_old(self, x, task_embedding):
-        x = self.patch_embed(x)
-        if self.ape:
-            x = x + self.absolute_pos_embed
-        x = self.pos_drop(x)
-
-        for layer in self.layers:
-            x, hidden_film = layer(x, task_embedding=task_embedding)
-
-        x = self.norm(x)  # B L C
-
-        return x
 
     def forward_features(self, x, task_embedding, task_id):
+
+        # First, embed 4x4 patches
         x = self.patch_embed(x)
         if self.ape:
             x = x + self.absolute_pos_embed
         x = self.pos_drop(x)
         x_downsample = []
 
+        # Forward from the encoder layers
         for i,layer in enumerate(self.layers):
             x_downsample.append(x)
             if i == 0:
                 x, hidden = layer(x, task_embedding=task_embedding, task_id = task_id)
             else:
                 x, hidden = layer(x, hidden, task_embedding=task_embedding, task_id = task_id)
-                
+       
         if self.adapter:
             x = hidden
 
@@ -993,6 +997,8 @@ class SwinTransformer(nn.Module):
 
     #Dencoder and Skip connection
     def forward_up_features(self, x, x_downsample, layers_up, concat_back_dim, norm_up, printt = False):
+
+        # Forward through decoder layers
         for inx, layer_up in enumerate(layers_up):
            
             if inx == 0:
@@ -1010,6 +1016,8 @@ class SwinTransformer(nn.Module):
         return x
 
     def up_x4(self, x, up, output):
+
+        # Final upsample for correct resolution
         H, W = self.patches_resolution
         B, L, C = x.shape
         assert L == H*W, "input features has wrong size"
@@ -1023,23 +1031,20 @@ class SwinTransformer(nn.Module):
 
         return x
 
-    def forward_old(self, x, task_id):
-
-        task_type = self._create_task_type(task_id)
-        task_embedding = self.task_type_embeddings(task_type)
-
-        x = self.forward_features(x, task_embedding)
-        return x
 
     def forward(self, x, task_id):
 
+        # Get task embeddings
         task_type, unique_task_ids_list = self._create_task_type(task_id)
         task_embedding = self.task_type_embeddings(task_type)
 
+        # Forward through the encoder layers
         x, x_downsample = self.forward_features(x, task_embedding, task_id)
 
+        # Keep logits in a list for each task
         logits = []
 
+        # Forward through the decoder layers separately for each task
         for unique_task_id in unique_task_ids_list:
 
             task_id_filter = task_id == unique_task_id

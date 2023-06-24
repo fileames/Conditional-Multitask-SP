@@ -56,14 +56,13 @@ class CBDA(nn.Module):
         gamma, beta = torch.chunk(gb, 2, dim=-1)
         out = (1 + gamma) * x_to_film + beta
         """
-        #print("xcond", x_cond.shape)
-        #print("x_to_film", x_to_film.shape)
+    
         gb = self.gb_weights(x_cond).unsqueeze(1)
-        #print("gb", gb.shape)
+        
         gamma, beta = torch.chunk(gb, 2, dim=-1)
-        #print("gamma, beta", gamma.shape, beta.shape)
+        
         out = (1 + gamma) * x_to_film + beta
-        #print("out",out.shape)
+        
         
         if self.layer_norm is not None:
             out = self.layer_norm(out)

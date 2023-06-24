@@ -98,6 +98,7 @@ class WindowAttention(nn.Module):
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
         attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
         proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+        task_configs (dict): Configuration for the tasks
     """
 
     def __init__(self, dim, window_size, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., task_configs=None):
@@ -138,7 +139,6 @@ class WindowAttention(nn.Module):
         trunc_normal_(self.relative_position_bias_table, std=.02)
         self.softmax = nn.Softmax(dim=-1)
 
-        # buradan aşağısı
         self.task_configs = task_configs
         if task_configs is not None:
 
@@ -183,12 +183,9 @@ class WindowAttention(nn.Module):
         
       
 
-        """if task_embedding is None:
-            e = nn.Embedding(1, self.hidden_size)
-            task_embedding = e(torch.LongTensor([0] * B_))"""
         if self.task_configs is not None:
 
-            attn2 = self.cond_block_diag_attn(  # TODO: bunun yeri burası mı yoksa tam softmax öncesi mi
+            attn2 = self.cond_block_diag_attn(  
                 x_cond=task_embedding,
                 x_to_film=self.random_weight_matrix,
             )
@@ -256,6 +253,8 @@ class SwinTransformerBlock(nn.Module):
         act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
+        task_configs (dict): Configuration for the tasks
+        use_conditional_layer (bool, optional): Whether to use conditional or regular layer normalization
     """
 
     def __init__(self, dim, input_resolution, num_heads, window_size=7, shift_size=0,
@@ -333,7 +332,6 @@ class SwinTransformerBlock(nn.Module):
         x = self.norm1(x)
         
         x = x.view(B, H, W, C)
-        #print("HEYY1", x.shape)
 
         # cyclic shift
         if self.shift_size > 0:
@@ -352,7 +350,6 @@ class SwinTransformerBlock(nn.Module):
             # nW*B, window_size, window_size, C
             x_windows = window_partition(shifted_x, self.window_size)
 
-        #print("HEYY", x_windows.shape)
         # nW*B, window_size*window_size, C
         x_windows = x_windows.view(-1, self.window_size * self.window_size, C)
 
@@ -365,7 +362,6 @@ class SwinTransformerBlock(nn.Module):
         attn_windows = attn_windows.view(-1,
                                          self.window_size, self.window_size, C)
 
-        #print("HERERERER1111", attn_windows.shape)
 
         # reverse cyclic shift
         if self.shift_size > 0:
@@ -380,12 +376,9 @@ class SwinTransformerBlock(nn.Module):
         else:
             shifted_x = window_reverse(
                 attn_windows, self.window_size, H, W)  # B H' W' C
-            #print("HERERERER1111", shifted_x.shape)
             x = shifted_x
 
-        #print("HERERERER", x.shape)
         x = x.view(B, H * W, C)
-        #print("HERERERER2222", x.shape)
         x = shortcut + self.drop_path(x)
 
         # FFN
@@ -482,6 +475,10 @@ class BasicLayer(nn.Module):
         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
+        task_configs (dict): Configuration for the tasks
+        conditioned_blocks (list): List of transformer blocks to condition
+        adapter (boolean): Whether to use adapters or not
+        use_conditional_layer (boolean): Whether to use regular or conditioned layer normalization
     """
 
     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
@@ -591,6 +588,7 @@ class BasicLayer_up(nn.Module):
         norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+        use_conditional_layer (boolean): Whether to use regular or conditioned layer normalization
     """
 
     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
@@ -766,6 +764,12 @@ class SwinTransformer(nn.Module):
         patch_norm (bool): If True, add normalization after patch embedding. Default: True
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
+        tasks (list): List of tasks
+        final_upsample (strin): Setting to expand the last layer
+        task_classes (list): List of number of prediction classes for each task
+        conditioned_blocks (list): List of transformer blocks to condition
+        adapter (boolean): Whether to use adapters or not
+        use_conditional_layer (boolean): Whether to use regular or conditioned layer normalization
     """
 
     def __init__(self, img_size=224, patch_size=4, in_chans=3, num_classes=1000,
@@ -945,13 +949,10 @@ class SwinTransformer(nn.Module):
 
         for layer in self.layers:
             x, hidden_film = layer(x, task_embedding=task_embedding)
-            #print(x.shape)
 
         x = self.norm(x)  # B L C
 
-        # comment yapı bozulmasın diye
-        """x = self.avgpool(x.transpose(1, 2))  # B C 1
-        x = torch.flatten(x, 1)"""
+    
         return x
 
     def forward_features(self, x, task_embedding, task_id):
@@ -987,7 +988,6 @@ class SwinTransformer(nn.Module):
                 x = torch.cat([x, x_downsample[3-inx]], -1)
                 x = concat_back_dim[inx](x)
                 x = layer_up(x)
-        
         
         x = norm_up(x)  
     
@@ -1070,7 +1070,7 @@ class SwinTransformer(nn.Module):
         flops += self.num_features * self.num_classes
         return flops
 
-    def _create_task_type(self, task_id):  # TODO anla
+    def _create_task_type(self, task_id):  
         task_type = task_id.clone()
         unique_task_ids = torch.unique(task_type)
         unique_task_ids_list = (
