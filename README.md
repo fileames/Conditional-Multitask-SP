@@ -112,7 +112,7 @@ To train the model with the taskonomy dataset, get access to data.
 
 ### Evaluation
 
-The trained models can be evaluated with the `evaluate.py` script, with the following command. More information on evaluation config file can be found in [config README](https://github.com/fileames/Conditional-Multitask-SP/tree/main/configs). Mean IOU and d1 metrics are printed and a variable number of images are saved to the `image` folder.
+The trained models can be evaluated with the `evaluate.py` script, with the following command. More information on evaluation config file can be found in [config README](https://github.com/fileames/Conditional-Multitask-SP/tree/main/configs). Mean IOU and d1 metrics are printed and a variable number of images are saved to the `images` folder.
 
 ```bash
     python evaluate.py --config ./configs/evaluate.json
