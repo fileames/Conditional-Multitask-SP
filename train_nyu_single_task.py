@@ -116,7 +116,7 @@ def train(model, train_loader, test_loader, optimizer, scheduler, criterion, epo
                 if task == "segmentation":
                     label_task = label_task.long()
 
-                    a = criterion[unique_task_id](logit_task.view(B,14,-1), label_task.view(B,-1)) 
+                    a = criterion[0](logit_task.view(B,14,-1), label_task.view(B,-1)) 
                     epoch_loss_seg.append(a.item())
                     
                     loss += a
@@ -130,7 +130,7 @@ def train(model, train_loader, test_loader, optimizer, scheduler, criterion, epo
                     label_task = 65536.0 / (label_task + 1)
                     logit_task = torch.nn.functional.sigmoid(logit_task)*65535 + 1
 
-                    a = criterion[unique_task_id](logit_task, label_task) 
+                    a = criterion[1](logit_task, label_task) 
                     epoch_loss_depth.append(a.item())
                     
                     loss += a
