@@ -1,0 +1,15 @@
+{
+    "experiment_name": "taskonomy",
+    "continue_training": false,
+    
+    "batch_size": 64,
+    "epochs": 10,
+    
+    "conditioned_blocks": [[0,1],[0,1],[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],[0,1]],
+    "adapter": false,
+    "frozen_encoder": false,
+        
+    "seg_weight": 5,
+    "depth_weight": 1
+}
+

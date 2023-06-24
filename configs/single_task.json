@@ -1,0 +1,12 @@
+{
+    "experiment_name": "test_segmentation",
+    "continue_training": false,
+    
+    "task": "segmentation",
+    
+    "batch_size": 16,
+    "epochs": 4000,
+    
+    "frozen_encoder": false
+        
+}
